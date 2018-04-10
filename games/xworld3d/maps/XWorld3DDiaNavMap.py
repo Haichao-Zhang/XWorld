@@ -14,7 +14,11 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         self.class_per_session = 2 # max number of classes in a session
                                    # value < 1 denotes all classes are used
         self.sel_classes = {} # selected classes for a session
-        self.shuffle = True # shuffle classes
+        self.shuffle = False # shuffle classes
+        self.nav_loc_set = [(2, 2, 0), (2, 0 ,0)]
+        self.dia_loc_set = [(0, 1, 0)]
+
+        self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
 
     def _configure(self, select_class=True):
         self.set_goal_subtrees([ "others", "furniture"])
@@ -28,9 +32,9 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             self.shuffle_classes("goal")
 
         self.set_entity(type="agent", loc=(1, 1, 0))
-        self.set_entity(type="goal", loc=(2, 2, 0))
-        self.set_entity(type="goal", loc=(2, 0, 0))
-        self.set_entity(type="goal", loc=(0, 1, 0))
+        self.set_entity(type="goal", loc=self.nav_loc_set[0])
+        self.set_entity(type="goal", loc=self.nav_loc_set[1])
+        self.set_entity(type="goal", loc=self.dia_loc_set[0])
 
         sel_goals = self.get_selected_goal_classes()
         random.shuffle(sel_goals)
@@ -44,7 +48,9 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
                 self.set_property(e, property_value_dict={"name" : random.choice(sel_goals), \
                                                           "yaw" : None})
         a, _, _ = self.get_agent()
-        self.set_property(a, property_value_dict={"yaw" : 3.14})
+
+        self.agent_yaw = random.choice(self.agent_yaw_set)
+        self.set_property(a, property_value_dict={"yaw" : self.agent_yaw})
 
     @overrides(XWorld3DEnv)
     def get_all_possible_names(self, type):
