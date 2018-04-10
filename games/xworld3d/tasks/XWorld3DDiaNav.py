@@ -78,9 +78,11 @@ class XWorld3DDiaNav(XWorld3DTask):
         # extend_step is for provding answer by teacher
         extend_step = (is_nothing_said or is_question_asked) and \
                        qa_stage_prev
+        """
         # in this case, move to the next object for interaction
         if not extend_step:
             self.env.within_session_reinstantiation()
+        """
 
         goals = self._get_goals()
         sel_goal = random.choice(goals)

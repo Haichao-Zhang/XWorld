@@ -27,13 +27,19 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         if self.shuffle:
             self.shuffle_classes("goal")
 
-        self.set_entity(type="agent", loc=(2, 1, 0))
+        self.set_entity(type="agent", loc=(0, 1, 0))
         self.set_entity(type="goal", loc=(2, 2, 0))
+        self.set_entity(type="goal", loc=(2, 0, 0))
 
-        for e in self.get_goals():
-            self.set_property(e, property_value_dict={"name" : None, "yaw" : None})
+        sel_goals = self.get_selected_goal_classes()
+        random.shuffle(sel_goals)
+
+        for i, e in enumerate(self.get_goals()):
+            assert len(sel_goals) > 0, "no goals available"
+            self.set_property(e, property_value_dict={"name" : sel_goals[i], \
+                                                      "yaw" : None})
         a, _, _ = self.get_agent()
-        self.set_property(a, property_value_dict={"yaw" : 3.14/2})
+        self.set_property(a, property_value_dict={"yaw" : 0})
 
     @overrides(XWorld3DEnv)
     def get_all_possible_names(self, type):
@@ -71,8 +77,10 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             self.select_goal_classes()
         return self.sel_classes
 
+    """
     def within_session_reinstantiation(self):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         for e in self.get_goals():
             self.set_property(e, property_value_dict={"asset_path" : None, "yaw" : None})
+    """
