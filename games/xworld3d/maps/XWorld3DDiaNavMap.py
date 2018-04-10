@@ -27,19 +27,24 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         if self.shuffle:
             self.shuffle_classes("goal")
 
-        self.set_entity(type="agent", loc=(0, 1, 0))
+        self.set_entity(type="agent", loc=(1, 1, 0))
         self.set_entity(type="goal", loc=(2, 2, 0))
         self.set_entity(type="goal", loc=(2, 0, 0))
+        self.set_entity(type="goal", loc=(0, 1, 0))
 
         sel_goals = self.get_selected_goal_classes()
         random.shuffle(sel_goals)
 
         for i, e in enumerate(self.get_goals()):
             assert len(sel_goals) > 0, "no goals available"
-            self.set_property(e, property_value_dict={"name" : sel_goals[i], \
-                                                      "yaw" : None})
+            if e.loc != (0, 1, 0):
+                 self.set_property(e, property_value_dict={"name" : sel_goals[i], \
+                                                          "yaw" : None})
+            else:
+                self.set_property(e, property_value_dict={"name" : random.choice(sel_goals), \
+                                                          "yaw" : None})
         a, _, _ = self.get_agent()
-        self.set_property(a, property_value_dict={"yaw" : 0})
+        self.set_property(a, property_value_dict={"yaw" : 3.14})
 
     @overrides(XWorld3DEnv)
     def get_all_possible_names(self, type):
