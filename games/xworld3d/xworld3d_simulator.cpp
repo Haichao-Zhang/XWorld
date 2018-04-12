@@ -313,8 +313,7 @@ float X3Simulator::take_action(const StatePacket& actions) {
     }
 
     //// speak
-    if (FLAGS_x3_task_mode == "arxiv_interactive" ||
-        FLAGS_x3_task_mode == "one_channel") {
+    if (FLAGS_x3_task_mode == "arxiv_interactive") {
         CHECK(actions.contain_key("pred_sentence"))
                 << "The agent has to take the speak action.";
         std::string agent_sent =

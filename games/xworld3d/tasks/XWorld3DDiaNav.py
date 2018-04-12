@@ -37,7 +37,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         Start a task
         """
-        print("--------idle ")
+        # print("--------idle ")
         self.task_type = self.get_task_type()
         agent, _, _ = self._get_agent()
 
@@ -76,7 +76,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         Issue a command
         """
-        print("--------command ")
+        # print("--------command ")
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
         assert len(goals) > 0, "there is no goal on the map!"
@@ -102,7 +102,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         Issue a command and give reward based on arrival
         """
-        print("--------command and reward ")
+        # print("--------command and reward ")
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
         assert len(goals) > 0, "there is no goal on the map!"
@@ -124,7 +124,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         Giving reward to the agent
         """
-        print("--------reward ")
+        # print("--------reward ")
         def get_reward(reward, success=None):
             """
             Internal function for compute reward based on the stepwise_reward flag.
@@ -220,7 +220,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         conversation is over, which enables the agent to learn language model
         from teacher's last sentence.
         """
-        print("--------wrapup ")
+        # print("--------wrapup ")
         if all(self.behavior_flags):
             self._record_success()
             self._record_event("correct_reply", next=True)
@@ -270,7 +270,7 @@ class XWorld3DDiaNav(XWorld3DTask):
 
     def get_word_level_grammar(self):
         grammar_str = """
-        S --> question | statement | command | correct | wrong
+        S --> question | statement | command | correct | wrong | timeup
         question -> E | Q
         statement-> G
         command -> C
@@ -280,6 +280,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         C -> 'go' 'to' G
         correct -> 'correct'
         wrong -> 'wrong'
+        timeup -> 'time' 'up'
         """
         return grammar_str, "S"
 
