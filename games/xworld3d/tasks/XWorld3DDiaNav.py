@@ -21,12 +21,15 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.step_penalty = -0.01
 
         ## for teaching moving objects
-        self.active_goal = None
+        self.active_loc = None
+        self.teach_step_max = 4
+        self.teach_step_cur = 0
 
     def reset_dialog_setting(self):
         self.question_ratio = 0.5 # the chance of asking a question or making a statement
         self.teacher_sent_prev_ = [] # stores teacher's sentences in a session in order
         self.behavior_flags = []
+        self.teach_step_cur = 0
 
     def get_nav_goals(self):
         goals = self._get_goals()
@@ -38,19 +41,26 @@ class XWorld3DDiaNav(XWorld3DTask):
         dia_goals = [g for g in goals if g.loc in self.env.dia_loc_set]
         return dia_goals
 
-    def select_active_goal(self):
-        # randomly select one object to teach
-        self.active_goal = random.choice(self.get_dia_goals())
-        self.loc_step = (0, 1, 0) if self.active_goal.loc[1] <= 0 else (0, -1, 0)
+    def get_active_goal(self):
+        # if the goal is on teach loc, then it is active
+        # otherwise randomly select one object to teach
+        ag = [g for g in self._get_goals() if g.loc == self.env.teach_loc]
+        if len(ag) > 0:
+            return ag[0]
+        else:
+            self.active_loc = random.choice(self.env.dia_loc_set)
+            active_goals = [g for g in self.get_dia_goals() if g.loc == self.active_loc]
+            active_goal = active_goals[0]
+            return active_goal
 
     def idle(self):
         """
         Start a task
         """
         # print("--------idle ")
+        self.teach_step_cur = 0
         self.task_type = self.get_task_type()
         agent, _, _ = self._get_agent()
-        self.select_active_goal()
 
         return ["move_or_teach", 0.0, ""]
 
@@ -96,38 +106,40 @@ class XWorld3DDiaNav(XWorld3DTask):
         agent, _, _ = self._get_agent()
         # move always, teach dependes
 
-        self.env.within_session_reinstantiation([self.active_goal], [self.loc_step])
+        # self.env.within_session_reinstantiation([self.active_goal], [self.loc_step])
+        active_goal = self.get_active_goal()
+        self.dia_goal = active_goal
+        if self.active_loc != self.env.teach_loc:
+            self.org_loc = self.active_loc
+            self.active_loc = self.env.teach_loc
+            self._move_entity(active_goal, self.env.teach_loc)
+        else:
+            self._move_entity(active_goal, self.org_loc)
 
         # check if teaching condition is satisfied
-        l1 = np.array(self.active_goal.loc)
+        l1 = np.array(active_goal.loc)
+        # value of l1 is based on whether the env update happens next step or not
         l2 = np.array(agent.loc)
-        print l1, l2
+
         diff = l1 - l2
-        print diff
+
+        print("%s %s %s" % (l1, l2, diff))
         theta = np.arccos(np.dot(l1, l2) / (np.linalg.norm(l1) * np.linalg.norm(l2)))
-        print theta
 
-        return ["move_or_teach", 0.0, ""]
-        if self.task_type == "dia":
-            sel_goal = random.choice(self.get_dia_goals())
-            self.dia_goal = sel_goal
-            ## first generate all candidate answers
-            self._bind("S -> statement")
-            self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-            self.answers = self._generate_all()
+        teacher_sent = ""
+        if self.teach_step_cur < self.teach_step_max:
+            self.teach_step_cur += 1
+            print("theta %s" %(theta))
+            if np.abs(theta) <= 1: # move and teach
+                ## first generate all candidate answers
+                self._bind("S -> statement")
+                self._set_production_rule("G -> " + " ".join(["'" + active_goal.name + "'"]))
+                self.answers = self._generate_all()
 
-            ## then generate the question
-            self._bind("S -> question")
-            self.questions = self._generate_all()
-
-            sent = self.sentence_selection_with_ratio()
-            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-            teacher_sent = self._generate_and_save([sent])
-            q_from_teacher = (teacher_sent == "" or teacher_sent in self.questions)
-            if q_from_teacher: # dialog interaction
-                return ["reward", 0.0, teacher_sent]
-            else:
-                return ["command", 0.0, teacher_sent]
+                sent = self.sentence_selection_with_ratio()
+                self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
+                teacher_sent = self._generate_and_save([sent])
+            return ["move_or_teach", 0.0, teacher_sent]
         else:
             sel_goal = random.choice(self.get_nav_goals())
             ## first generate all candidate answers
@@ -137,7 +149,7 @@ class XWorld3DDiaNav(XWorld3DTask):
             sent = random.choice(self.commands)
             self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
             teacher_sent = self._generate_and_save([sent])
-            return ["reward", 0.0, teacher_sent]
+            return ["command", 0.0, teacher_sent]
 
     def command(self):
         """
@@ -213,18 +225,9 @@ class XWorld3DDiaNav(XWorld3DTask):
         # get teacher's sentence
         prev_sent = self._get_last_sent()
         # if the previous stage is a qa stage
-        qa_stage_prev = (prev_sent == "" or prev_sent in self.questions)
-        is_question_asked = agent_sent in self.questions
         is_reply_correct = agent_sent in self.answers
         is_nothing_said = agent_sent == ""
         # extend_step is for provding answer by teacher
-        extend_step = (is_nothing_said or is_question_asked) and \
-                       qa_stage_prev
-        """
-        # in this case, move to the next object for interaction
-        if not extend_step:
-            self.env.within_session_reinstantiation()
-        """
 
         sel_goal = self.dia_goal
 
@@ -339,12 +342,9 @@ class XWorld3DDiaNav(XWorld3DTask):
 
     def get_word_level_grammar(self):
         grammar_str = """
-        S --> question | statement | command | correct | wrong | timeup
-        question -> E | Q
+        S --> statement | command | correct | wrong | timeup
         statement-> G
         command -> C
-        E -> ''
-        Q -> 'what'
         G -> 'dummy'
         C -> 'go' 'to' G
         correct -> 'correct'
@@ -354,10 +354,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         return grammar_str, "S"
 
     def sentence_selection_with_ratio(self):
-        if random.uniform(0,1) > self.question_ratio: # proceed with statement
-            return random.choice(self.answers)
-        else:
-            return random.choice(self.questions)
+        return random.choice(self.answers)
 
     def _generate_and_save(self, teacher_sent = []):
         """

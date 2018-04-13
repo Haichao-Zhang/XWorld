@@ -18,7 +18,7 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         self.shuffle = False # shuffle classes
         self.nav_loc_set = [(4, 4, 0), (4, 0 ,0)]
         self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
-
+        self.teach_loc = (0, 2, 0)
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
 
     def _configure(self, select_class=True):
@@ -99,9 +99,13 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             self.select_goal_classes()
         return self.sel_classes
 
+    """
     def within_session_reinstantiation(self, e_list, step_list):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
         assert len(e_list) == len(step_list)
         for e, l in zip(e_list, step_list):
+            self.delete_entity(e)
             self.set_property(e, property_value_dict={"loc" : tsum(e.loc, l)})
+
+    """
