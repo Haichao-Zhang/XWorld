@@ -64,39 +64,6 @@ class XWorld3DDiaNav(XWorld3DTask):
 
         return ["move_or_teach", 0.0, ""]
 
-        """
-        if self.task_type == "dia":
-            sel_goal = random.choice(self.get_dia_goals())
-            self.dia_goal = sel_goal
-            ## first generate all candidate answers
-            self._bind("S -> statement")
-            self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-            self.answers = self._generate_all()
-
-            ## then generate the question
-            self._bind("S -> question")
-            self.questions = self._generate_all()
-
-            sent = self.sentence_selection_with_ratio()
-            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-            teacher_sent = self._generate_and_save([sent])
-            q_from_teacher = (teacher_sent == "" or teacher_sent in self.questions)
-            if q_from_teacher: # dialog interaction
-                return ["reward", 0.0, teacher_sent]
-            else:
-                return ["command", 0.0, teacher_sent]
-        else:
-            sel_goal = random.choice(self.get_nav_goals())
-            ## first generate all candidate answers
-            self._bind("S -> command")
-            self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-            self.commands = self._generate_all()
-            sent = random.choice(self.commands)
-            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-            teacher_sent = self._generate_and_save([sent])
-            return ["reward", 0.0, teacher_sent]
-        """
-
     def move_or_teach(self):
         """
         move object or teach the object
@@ -105,32 +72,29 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.task_type = self.get_task_type()
         agent, _, _ = self._get_agent()
         # move always, teach dependes
-
-        # self.env.within_session_reinstantiation([self.active_goal], [self.loc_step])
-        active_goal = self.get_active_goal()
-        self.dia_goal = active_goal
-        if self.active_loc != self.env.teach_loc:
-            self.org_loc = self.active_loc
-            self.active_loc = self.env.teach_loc
-            self._move_entity(active_goal, self.env.teach_loc)
-        else:
-            self._move_entity(active_goal, self.org_loc)
-
-        # check if teaching condition is satisfied
-        l1 = np.array(active_goal.loc)
-        # value of l1 is based on whether the env update happens next step or not
-        l2 = np.array(agent.loc)
-
-        diff = l1 - l2
-
-        print("%s %s %s" % (l1, l2, diff))
-        theta = np.arccos(np.dot(l1, l2) / (np.linalg.norm(l1) * np.linalg.norm(l2)))
-
         teacher_sent = ""
         if self.teach_step_cur < self.teach_step_max:
+
+            active_goal = self.get_active_goal()
+            self.dia_goal = active_goal
+            if self.active_loc != self.env.teach_loc:
+                self.org_loc = self.active_loc
+                self.active_loc = self.env.teach_loc
+                self._move_entity(active_goal, self.env.teach_loc)
+            else:
+                self._move_entity(active_goal, self.org_loc)
+
+            # check if teaching condition is satisfied
+            l1 = np.array(active_goal.loc)
+            # value of l1 is based on whether the env update happens next step or not
+            l2 = np.array(agent.loc)
+            diff = l1 - l2
+            north_dir = np.array(tsum(*self.env.dia_loc_set)) / 2
+
+            theta = np.arccos(np.dot(diff, north_dir) / (np.linalg.norm(diff) * np.linalg.norm(north_dir)))
+            print(theta)
             self.teach_step_cur += 1
-            print("theta %s" %(theta))
-            if np.abs(theta) <= 1: # move and teach
+            if np.abs(theta - 1.57) <= 0.2: # move and teach
                 ## first generate all candidate answers
                 self._bind("S -> statement")
                 self._set_production_rule("G -> " + " ".join(["'" + active_goal.name + "'"]))
@@ -140,7 +104,7 @@ class XWorld3DDiaNav(XWorld3DTask):
                 self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
                 teacher_sent = self._generate_and_save([sent])
             return ["move_or_teach", 0.0, teacher_sent]
-        else:
+        else: # issue an navigation command in the end
             sel_goal = random.choice(self.get_nav_goals())
             ## first generate all candidate answers
             self._bind("S -> command")
@@ -149,33 +113,11 @@ class XWorld3DDiaNav(XWorld3DTask):
             sent = random.choice(self.commands)
             self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
             teacher_sent = self._generate_and_save([sent])
-            return ["command", 0.0, teacher_sent]
-
-    def command(self):
-        """
-        Issue a command
-        """
-        # print("--------command ")
-        agent, _, _ = self._get_agent()
-        goals = self._get_goals()
-        assert len(goals) > 0, "there is no goal on the map!"
-
-        sel_goal = self.dia_goal
-        ## first generate all candidate answers
-        self._bind("S -> command")
-        self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-        self.commands = self._generate_all()
-        sent = random.choice(self.commands)
-        self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-        teacher_sent = self._generate_and_save([sent])
-        self.sentence = teacher_sent
-        ## find all goals that have the same name as the just taught one but at a different location
-        targets = [g for g in self.get_nav_goals() if g.name == sel_goal.name]
-        self._record_target(targets);
-
-        # get agent's sentence (response to previous sentence from teacher)
-        _, agent_sent, _ = self._get_agent()
-        return ["command_and_reward", 0.0, teacher_sent]
+            self.sentence = teacher_sent
+            ## find all goals that have the same name as the just taught one but at a different location
+            targets = [g for g in self.get_nav_goals() if g.name == sel_goal.name]
+            self._record_target(targets)
+            return ["command_and_reward", 0.0, teacher_sent]
 
     def command_and_reward(self):
         """
