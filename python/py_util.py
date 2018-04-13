@@ -38,3 +38,12 @@ def check_or_get_value(value, valid_value_set, is_continuous=False):
             assert value >= valid_value_set[0] and value <= valid_value_set[1], \
                 "input value %s is not in valid value set %s" % (value, valid_value_set)
             return value
+
+def tsum(a, b):
+    """
+    perform elementwise sum for two tuples
+    """
+    assert isinstance(a, tuple)
+    assert isinstance(b, tuple)
+    assert len(a) == len(b)
+    return tuple(map(sum, zip(a, b)))

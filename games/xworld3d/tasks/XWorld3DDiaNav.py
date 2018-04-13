@@ -1,6 +1,8 @@
 import random
 from xworld3d_task import XWorld3DTask
 from py_util import overrides
+from py_util import tsum
+import numpy as np
 
 class XWorld3DDiaNav(XWorld3DTask):
     def __init__(self, env):
@@ -18,6 +20,9 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.failure_reward = -0.1
         self.step_penalty = -0.01
 
+        ## for teaching moving objects
+        self.active_goal = None
+
     def reset_dialog_setting(self):
         self.question_ratio = 0.5 # the chance of asking a question or making a statement
         self.teacher_sent_prev_ = [] # stores teacher's sentences in a session in order
@@ -33,6 +38,11 @@ class XWorld3DDiaNav(XWorld3DTask):
         dia_goals = [g for g in goals if g.loc in self.env.dia_loc_set]
         return dia_goals
 
+    def select_active_goal(self):
+        # randomly select one object to teach
+        self.active_goal = random.choice(self.get_dia_goals())
+        self.loc_step = (0, 1, 0) if self.active_goal.loc[1] <= 0 else (0, -1, 0)
+
     def idle(self):
         """
         Start a task
@@ -40,7 +50,64 @@ class XWorld3DDiaNav(XWorld3DTask):
         # print("--------idle ")
         self.task_type = self.get_task_type()
         agent, _, _ = self._get_agent()
+        self.select_active_goal()
 
+        return ["move_or_teach", 0.0, ""]
+
+        """
+        if self.task_type == "dia":
+            sel_goal = random.choice(self.get_dia_goals())
+            self.dia_goal = sel_goal
+            ## first generate all candidate answers
+            self._bind("S -> statement")
+            self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
+            self.answers = self._generate_all()
+
+            ## then generate the question
+            self._bind("S -> question")
+            self.questions = self._generate_all()
+
+            sent = self.sentence_selection_with_ratio()
+            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
+            teacher_sent = self._generate_and_save([sent])
+            q_from_teacher = (teacher_sent == "" or teacher_sent in self.questions)
+            if q_from_teacher: # dialog interaction
+                return ["reward", 0.0, teacher_sent]
+            else:
+                return ["command", 0.0, teacher_sent]
+        else:
+            sel_goal = random.choice(self.get_nav_goals())
+            ## first generate all candidate answers
+            self._bind("S -> command")
+            self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
+            self.commands = self._generate_all()
+            sent = random.choice(self.commands)
+            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
+            teacher_sent = self._generate_and_save([sent])
+            return ["reward", 0.0, teacher_sent]
+        """
+
+    def move_or_teach(self):
+        """
+        move object or teach the object
+        """
+        # print("--------idle ")
+        self.task_type = self.get_task_type()
+        agent, _, _ = self._get_agent()
+        # move always, teach dependes
+
+        self.env.within_session_reinstantiation([self.active_goal], [self.loc_step])
+
+        # check if teaching condition is satisfied
+        l1 = np.array(self.active_goal.loc)
+        l2 = np.array(agent.loc)
+        print l1, l2
+        diff = l1 - l2
+        print diff
+        theta = np.arccos(np.dot(l1, l2) / (np.linalg.norm(l1) * np.linalg.norm(l2)))
+        print theta
+
+        return ["move_or_teach", 0.0, ""]
         if self.task_type == "dia":
             sel_goal = random.choice(self.get_dia_goals())
             self.dia_goal = sel_goal
@@ -236,7 +303,9 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         return all the stage names; does not have to be in order
         """
-        return ["idle", "command", "command_and_reward", "reward", "conversation_wrapup"]
+        return ["idle", "move_or_teach",
+                "command", "command_and_reward",
+                "reward", "conversation_wrapup"]
 
     def _define_grammar(self):
         if False:

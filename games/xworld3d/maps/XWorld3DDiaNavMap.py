@@ -3,27 +3,28 @@ from py_gflags import get_flag
 import os
 import random
 from py_util import overrides
+from py_util import tsum
 
 class XWorld3DDiaNavMap(XWorld3DEnv):
     def __init__(self, asset_path, start_level=0):
         super(XWorld3DDiaNavMap, self).__init__(
             asset_path=asset_path,
-            max_height=3,
-            max_width=3,
+            max_height=5,
+            max_width=5,
             maze_generation=False)
         self.class_per_session = 2 # max number of classes in a session
                                    # value < 1 denotes all classes are used
         self.sel_classes = {} # selected classes for a session
         self.shuffle = False # shuffle classes
-        self.nav_loc_set = [(2, 2, 0), (2, 0 ,0)]
-        self.dia_loc_set = [(0, 1, 0)]
+        self.nav_loc_set = [(4, 4, 0), (4, 0 ,0)]
+        self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
 
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
 
     def _configure(self, select_class=True):
         self.set_goal_subtrees([ "others", "furniture"])
         ## these are all the object classes
-        self.set_dims(3, 3)
+        self.set_dims(5, 5)
 
         if select_class:
             self.select_goal_classes() # re-select goal class for a new session
@@ -31,26 +32,36 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         if self.shuffle:
             self.shuffle_classes("goal")
 
-        self.set_entity(type="agent", loc=(1, 1, 0))
+        self.set_entity(type="agent", loc=(2, 2, 0))
         self.set_entity(type="goal", loc=self.nav_loc_set[0])
         self.set_entity(type="goal", loc=self.nav_loc_set[1])
         self.set_entity(type="goal", loc=self.dia_loc_set[0])
+        self.set_entity(type="goal", loc=self.dia_loc_set[1])
 
         sel_goals = self.get_selected_goal_classes()
-        random.shuffle(sel_goals)
 
-        for i, e in enumerate(self.get_goals()):
-            assert len(sel_goals) > 0, "no goals available"
-            if e.loc != (0, 1, 0):
-                 self.set_property(e, property_value_dict={"name" : sel_goals[i], \
-                                                          "yaw" : None})
-            else:
-                self.set_property(e, property_value_dict={"name" : random.choice(sel_goals), \
-                                                          "yaw" : None})
+        random.shuffle(sel_goals)
+        for i, e in enumerate(self.get_nav_goals()):
+            self.set_property(e, property_value_dict={"name" : sel_goals[i], \
+                                                      "yaw" : None})
+        random.shuffle(sel_goals)
+        for i, e in enumerate(self.get_dia_goals()):
+            self.set_property(e, property_value_dict={"name" : sel_goals[i], \
+                                                      "yaw" : None})
         a, _, _ = self.get_agent()
 
         self.agent_yaw = random.choice(self.agent_yaw_set)
         self.set_property(a, property_value_dict={"yaw" : self.agent_yaw})
+
+    def get_nav_goals(self):
+        goals = self.get_goals()
+        nav_goals = [g for g in goals if g.loc in self.nav_loc_set]
+        return nav_goals
+
+    def get_dia_goals(self):
+        goals = self.get_goals()
+        dia_goals = [g for g in goals if g.loc in self.dia_loc_set]
+        return dia_goals
 
     @overrides(XWorld3DEnv)
     def get_all_possible_names(self, type):
@@ -88,10 +99,9 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             self.select_goal_classes()
         return self.sel_classes
 
-    """
-    def within_session_reinstantiation(self):
+    def within_session_reinstantiation(self, e_list, step_list):
         # re-instantiate within the same session
         # re-load from map config with the same set of sampled classes
-        for e in self.get_goals():
-            self.set_property(e, property_value_dict={"asset_path" : None, "yaw" : None})
-    """
+        assert len(e_list) == len(step_list)
+        for e, l in zip(e_list, step_list):
+            self.set_property(e, property_value_dict={"loc" : tsum(e.loc, l)})
