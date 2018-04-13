@@ -94,7 +94,7 @@ class XWorld3DDiaNav(XWorld3DTask):
             theta = np.arccos(np.dot(diff, north_dir) / (np.linalg.norm(diff) * np.linalg.norm(north_dir)))
             print(theta)
             self.teach_step_cur += 1
-            if np.abs(theta - 1.57) <= 0.2: # move and teach
+            if np.abs(theta - 1.57) <= 0.2: # move and teach when obj in view
                 ## first generate all candidate answers
                 self._bind("S -> statement")
                 self._set_production_rule("G -> " + " ".join(["'" + active_goal.name + "'"]))
