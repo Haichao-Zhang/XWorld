@@ -24,12 +24,13 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.active_loc = None
         self.teach_step_max = 4
         self.teach_step_cur = 0
+        self.taught_goal_loc = [] # loc for already taught goals
 
     def reset_dialog_setting(self):
-        self.question_ratio = 0.5 # the chance of asking a question or making a statement
         self.teacher_sent_prev_ = [] # stores teacher's sentences in a session in order
         self.behavior_flags = []
         self.teach_step_cur = 0
+        self.taught_goal_loc = [] # loc for already taught goals
 
     def get_nav_goals(self):
         goals = self._get_goals()
@@ -48,7 +49,9 @@ class XWorld3DDiaNav(XWorld3DTask):
         if len(ag) > 0:
             return ag[0]
         else:
-            self.active_loc = random.choice(self.env.dia_loc_set)
+            self.active_loc = random.choice(list(set(self.env.dia_loc_set) - set(self.taught_goal_loc)))
+            self.taught_goal_loc.append(self.active_loc)
+
             active_goals = [g for g in self.get_dia_goals() if g.loc == self.active_loc]
             active_goal = active_goals[0]
             return active_goal
@@ -58,7 +61,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         Start a task
         """
         # print("--------idle ")
-        self.teach_step_cur = 0
+        self.reset_dialog_setting()
         self.task_type = self.get_task_type()
         agent, _, _ = self._get_agent()
 
@@ -74,7 +77,8 @@ class XWorld3DDiaNav(XWorld3DTask):
         # move always, teach dependes
         teacher_sent = ""
         if self.teach_step_cur < self.teach_step_max:
-
+            self.teach_step_cur += 1
+            print(self.teach_step_cur)
             active_goal = self.get_active_goal()
             self.dia_goal = active_goal
             if self.active_loc != self.env.teach_loc:
@@ -92,8 +96,6 @@ class XWorld3DDiaNav(XWorld3DTask):
             north_dir = np.array(tsum(*self.env.dia_loc_set)) / 2
 
             theta = np.arccos(np.dot(diff, north_dir) / (np.linalg.norm(diff) * np.linalg.norm(north_dir)))
-            print(theta)
-            self.teach_step_cur += 1
             if np.abs(theta - 1.57) <= 0.2: # move and teach when obj in view
                 ## first generate all candidate answers
                 self._bind("S -> statement")
@@ -123,7 +125,6 @@ class XWorld3DDiaNav(XWorld3DTask):
         """
         Issue a command and give reward based on arrival
         """
-        # print("--------command and reward ")
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
         assert len(goals) > 0, "there is no goal on the map!"
@@ -139,91 +140,10 @@ class XWorld3DDiaNav(XWorld3DTask):
                 return ["conversation_wrapup", reward, self.sentence]
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
-        return ["command_and_reward", reward, self.sentence]
 
-    def reward(self):
-        """
-        Giving reward to the agent
-        """
-        # print("--------reward ")
-        def get_reward(reward, success=None):
-            """
-            Internal function for compute reward based on the stepwise_reward flag.
-            reward is the current step reward
-            success: None: not an ending step, True: success, False: failure
-            """
-            if self.stepwise_reward:
-                return reward
-            elif success is None:
-                # only step_penalty for intermediate steps in non-stepwise rewarding case
-                return self.step_penalty
-            elif success is True: #final stage
-                return self.success_reward
-            elif success is False:
-                return self.failure_reward
-
-        # get agent's sentence (response to previous sentence from teacher)
-        _, agent_sent, _ = self._get_agent()
-        # get teacher's sentence
-        prev_sent = self._get_last_sent()
-        # if the previous stage is a qa stage
-        is_reply_correct = agent_sent in self.answers
-        is_nothing_said = agent_sent == ""
-        # extend_step is for provding answer by teacher
-
-        sel_goal = self.dia_goal
-
-        # update answers
-        self._bind("S -> statement") # first bind S to statement
-        #self._bind("G -> '%s'" % sel_goal.name)
-        self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-        self.answers = self._generate_all()
-
-        self.steps_in_cur_task += 1
-        # decide reward and next stage
-        if qa_stage_prev:
-            if is_question_asked:
-                # reward feedback
-                if not is_nothing_said:
-                    reward = self.question_ask_reward
-                else:
-                    reward = self.nothing_said_reward
-                    self.behavior_flags += [False]
-                # sentence feedback (answer/statement)
-                self._bind("S -> statement")
-                #self._bind("G -> '%s'" % sel_goal.name)
-                self._set_production_rule("G -> " + " ".join(["'" + sel_goal.name + "'"]))
-                teacher_sent = self._generate_and_save()
-                return ["command", reward, teacher_sent]
-            elif is_reply_correct:
-                self.behavior_flags += [True]
-                reward = self.speak_correct_reward
-                reward = get_reward(reward, all(self.behavior_flags))
-                teacher_sent = ""
-                return ["conversation_wrapup", reward, teacher_sent]
-            else:
-                self.behavior_flags += [False]
-                reward = self.speak_incorrect_reward
-                sent = self.sentence_selection_with_ratio()
-                self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-                teacher_sent = self._generate_and_save([sent])
+            return ["command_and_reward", reward, self.sentence]
         else:
-            # reward feedback for different cases
-            if is_reply_correct: # repeat statement
-                reward = 0
-            elif is_nothing_said:
-                reward = self.nothing_said_reward
-            elif is_question_asked:
-                reward = self.speak_incorrect_reward
-            else:
-                self.behavior_flags += [False]
-                reward = self.speak_incorrect_reward
-            # sentence feedback
-            sent = self.sentence_selection_with_ratio()
-            self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
-            teacher_sent = self._generate_and_save([sent])
-        reward = get_reward(reward)
-        return ["command", reward, teacher_sent]
+            return ["conversation_wrapup", reward + -1, self.sentence]
 
     @overrides(XWorld3DTask)
     def conversation_wrapup(self):
@@ -249,8 +169,21 @@ class XWorld3DDiaNav(XWorld3DTask):
         return all the stage names; does not have to be in order
         """
         return ["idle", "move_or_teach",
-                "command", "command_and_reward",
-                "reward", "conversation_wrapup"]
+                "command_and_reward",
+                "conversation_wrapup"]
+
+    @overrides(XWorld3DTask)
+    def _time_reward(self):
+        reward = XWorld3DTask.time_penalty
+        self.steps_in_cur_task += 1
+        h, w = self.env.get_dims()
+        if self.steps_in_cur_task >= 30:
+            self._record_failure()
+            self._bind("S -> timeup")
+            self.sentence = self._generate()
+            self._record_event("time_up")
+            return (reward, True)
+        return (reward, False)
 
     def _define_grammar(self):
         if False:
