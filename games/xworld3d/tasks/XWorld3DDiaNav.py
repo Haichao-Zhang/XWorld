@@ -7,7 +7,7 @@ import numpy as np
 class XWorld3DDiaNav(XWorld3DTask):
     def __init__(self, env):
         super(XWorld3DDiaNav, self).__init__(env)
-        self.max_steps = 20 # maximum number of steps, should be related to number of sel classes
+        self.max_steps = 30 # maximum number of steps, should be related to number of sel classes
         self.speak_correct_reward = 1
         self.speak_incorrect_reward = -1
         self.question_ask_reward = 0.1
@@ -78,7 +78,6 @@ class XWorld3DDiaNav(XWorld3DTask):
         teacher_sent = ""
         if self.teach_step_cur < self.teach_step_max:
             self.teach_step_cur += 1
-            print(self.teach_step_cur)
             active_goal = self.get_active_goal()
             self.dia_goal = active_goal
             if self.active_loc != self.env.teach_loc:
