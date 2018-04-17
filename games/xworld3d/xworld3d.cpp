@@ -328,9 +328,6 @@ void X3World::remove_item(X3ItemPtr& item) {
 
 roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
     auto agent_ptr = get_agent(agent_id);
-    x3real x, y;
-    agent_ptr->get_direction(x, y);
-    // LOG(INFO) << "x " << x << "y " << y;
     return camera_->render(agent_ptr.get(), debug);
 }
 
