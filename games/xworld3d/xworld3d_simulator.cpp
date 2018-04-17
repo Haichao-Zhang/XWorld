@@ -129,7 +129,7 @@ void X3SimulatorImpl::get_screen_rgb(
         cv::Point pt1(25, 25);
         cv::Point pt2(25 - 20 * y, 25 - 20 * x);
         cv::Scalar colorScalar = cv::Scalar( 0, 200, 0);
-        arrowedLine(screen, pt1, pt2, colorScalar, 2, 8, 0, 0.5);
+        cv::arrowedLine(screen, pt1, pt2, colorScalar, 2, 8, 0, 0.5);
     }
 }
 

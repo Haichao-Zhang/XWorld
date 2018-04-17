@@ -7,7 +7,7 @@ import numpy as np
 class XWorld3DDiaNav(XWorld3DTask):
     def __init__(self, env):
         super(XWorld3DDiaNav, self).__init__(env)
-        self.max_steps = 30 # maximum number of steps, should be related to number of sel classes
+        self.max_steps = 50 # maximum number of steps, should be related to number of sel classes
         self.speak_correct_reward = 1
         self.speak_incorrect_reward = -1
         self.question_ask_reward = 0.1
@@ -145,6 +145,19 @@ class XWorld3DDiaNav(XWorld3DTask):
             return ["conversation_wrapup", reward + -1, self.sentence]
 
     @overrides(XWorld3DTask)
+    def _time_reward(self):
+        reward = XWorld3DTask.time_penalty
+        self.steps_in_cur_task += 1
+        h, w = self.env.get_dims()
+        if self.steps_in_cur_task >= self.max_steps:
+            self._record_failure()
+            self._bind("S -> timeup")
+            self.sentence = self._generate()
+            self._record_event("time_up")
+            return (reward, True)
+        return (reward, False)
+
+    @overrides(XWorld3DTask)
     def conversation_wrapup(self):
         """
         This dummpy stage simply adds an additional time step after the
@@ -170,19 +183,6 @@ class XWorld3DDiaNav(XWorld3DTask):
         return ["idle", "move_or_teach",
                 "command_and_reward",
                 "conversation_wrapup"]
-
-    @overrides(XWorld3DTask)
-    def _time_reward(self):
-        reward = XWorld3DTask.time_penalty
-        self.steps_in_cur_task += 1
-        h, w = self.env.get_dims()
-        if self.steps_in_cur_task >= 30:
-            self._record_failure()
-            self._bind("S -> timeup")
-            self.sentence = self._generate()
-            self._record_event("time_up")
-            return (reward, True)
-        return (reward, False)
 
     def _define_grammar(self):
         if False:
