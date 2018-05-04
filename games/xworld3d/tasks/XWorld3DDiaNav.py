@@ -17,8 +17,8 @@ class XWorld3DDiaNav(XWorld3DTask):
         ## some config para
         self.stepwise_reward = True
         self.success_reward = 1
-        self.failure_reward = -0.1
-        self.step_penalty = -0.01
+        self.failure_reward = -1
+        self.step_penalty = -0.05
 
         ## for teaching moving objects
         self.active_loc = None
@@ -123,6 +123,7 @@ class XWorld3DDiaNav(XWorld3DTask):
     def command_and_reward(self):
         """
         Issue a command and give reward based on arrival
+        All rewards are within [-1, 1]
         """
         agent, _, _ = self._get_agent()
         goals = self._get_goals()
@@ -130,23 +131,33 @@ class XWorld3DDiaNav(XWorld3DTask):
         teacher_sent_prev = self._get_last_sent()
 
         reward, time_out = self._time_reward()
+        reward = self.step_penalty # over-write the step penalty
         if not time_out:
             agent, _, _ = self._get_agent()
             objects_reach_test = [g.id for g in self._get_goals() \
                                   if self._reach_object(agent.loc, agent.yaw, g)]
             if [t for t in self.target if t.id in objects_reach_test]:
+                # add with time penalty within _successful_goal function
                 reward = self._successful_goal(reward)
+                reward = np.clip(reward, self.failure_reward, self.success_reward)
                 return ["conversation_wrapup", reward, self.sentence]
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
-
+                reward = np.clip(reward, self.failure_reward, self.success_reward)
             return ["command_and_reward", reward, self.sentence]
         else:
-            return ["conversation_wrapup", reward + -1, self.sentence]
+            return ["conversation_wrapup", reward , self.sentence]
+
+    @overrides(XWorld3DTask)
+    def _reach_object(self, agent, yaw, object):
+        collisions = self._parse_collision_event(self.env.game_event)
+        theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
+        return abs(theta) < self.orientation_threshold and object.id in collisions
 
     @overrides(XWorld3DTask)
     def _time_reward(self):
-        reward = XWorld3DTask.time_penalty
+        # reward = XWorld3DTask.time_penalty
+        reward = self.step_penalty
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= self.max_steps:
@@ -154,8 +165,27 @@ class XWorld3DDiaNav(XWorld3DTask):
             self._bind("S -> timeup")
             self.sentence = self._generate()
             self._record_event("time_up")
+            reward += self.failure_reward
             return (reward, True)
         return (reward, False)
+
+    @overrides(XWorld3DTask)
+    def _successful_goal(self, reward):
+        self._record_success()
+        self._record_event("correct_goal")
+        reward += self.success_reward
+        self._bind("S -> correct")
+        self.sentence = self._generate()
+        return reward
+
+    @overrides(XWorld3DTask)
+    def _failed_goal(self, reward):
+        self._record_failure()
+        self._record_event("wrong_goal")
+        reward += self.failure_reward
+        self._bind("S -> wrong")
+        self.sentence = self._generate()
+        return reward
 
     @overrides(XWorld3DTask)
     def conversation_wrapup(self):

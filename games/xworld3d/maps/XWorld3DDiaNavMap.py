@@ -16,7 +16,8 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
                                    # value < 1 denotes all classes are used
         self.sel_classes = {} # selected classes for a session
         self.shuffle = False # shuffle classes
-        self.nav_loc_set = [(4, 4, 0), (4, 0 ,0)]
+        # (y, x, z)
+        self.nav_loc_set = [(2, 0, 0), (2, 4, 0)]
         self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
         self.teach_loc = (0, 2, 0)
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
