@@ -140,12 +140,15 @@ class XWorld3DDiaNav(XWorld3DTask):
                 # add with time penalty within _successful_goal function
                 reward = self._successful_goal(reward)
                 reward = np.clip(reward, self.failure_reward, self.success_reward)
+                self.behavior_flags += [True]
                 return ["conversation_wrapup", reward, self.sentence]
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
                 reward = np.clip(reward, self.failure_reward, self.success_reward)
+                self.behavior_flags += [False]
             return ["command_and_reward", reward, self.sentence]
         else:
+            self.behavior_flags += [False]
             return ["conversation_wrapup", reward , self.sentence]
 
     @overrides(XWorld3DTask)
@@ -161,18 +164,16 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.steps_in_cur_task += 1
         h, w = self.env.get_dims()
         if self.steps_in_cur_task >= self.max_steps:
-            self._record_failure()
+            # self._record_failure()
             self._bind("S -> timeup")
             self.sentence = self._generate()
-            self._record_event("time_up")
+            # self._record_event("time_up")
             reward += self.failure_reward
             return (reward, True)
         return (reward, False)
 
     @overrides(XWorld3DTask)
     def _successful_goal(self, reward):
-        self._record_success()
-        self._record_event("correct_goal")
         reward += self.success_reward
         self._bind("S -> correct")
         self.sentence = self._generate()
@@ -180,8 +181,6 @@ class XWorld3DDiaNav(XWorld3DTask):
 
     @overrides(XWorld3DTask)
     def _failed_goal(self, reward):
-        self._record_failure()
-        self._record_event("wrong_goal")
         reward += self.failure_reward
         self._bind("S -> wrong")
         self.sentence = self._generate()
@@ -194,13 +193,12 @@ class XWorld3DDiaNav(XWorld3DTask):
         conversation is over, which enables the agent to learn language model
         from teacher's last sentence.
         """
-        # print("--------wrapup ")
         if all(self.behavior_flags):
             self._record_success()
-            self._record_event("correct_reply", next=True)
+            self._record_event("correct_goal", next=True)
         else:
             self._record_failure()
-            self._record_event("wrong_reply", next=True)
+            self._record_event("wrong_goal", next=True)
         self._record_event(self.prev_event)
         self.prev_event = None
         self.reset_dialog_setting()
