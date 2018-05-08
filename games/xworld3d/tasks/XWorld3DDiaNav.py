@@ -25,6 +25,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.teach_step_max = 4
         self.teach_step_cur = 0
         self.taught_goal_loc = [] # loc for already taught goals
+        self.orientation_threshold = self.PI_4
 
     def reset_dialog_setting(self):
         self.teacher_sent_prev_ = [] # stores teacher's sentences in a session in order
@@ -146,16 +147,25 @@ class XWorld3DDiaNav(XWorld3DTask):
                 reward = self._failed_goal(reward)
                 reward = np.clip(reward, self.failure_reward, self.success_reward)
                 self.behavior_flags += [False]
+                return ["conversation_wrapup", reward, self.sentence]
             return ["command_and_reward", reward, self.sentence]
         else:
             self.behavior_flags += [False]
             return ["conversation_wrapup", reward , self.sentence]
 
+    """
     @overrides(XWorld3DTask)
     def _reach_object(self, agent, yaw, object):
         collisions = self._parse_collision_event(self.env.game_event)
         theta, _, _ = self._get_direction_and_distance(agent, object.loc, yaw)
         return abs(theta) < self.orientation_threshold and object.id in collisions
+    """
+
+    # do not use collision right now for simplification
+    @overrides(XWorld3DTask)
+    def _reach_object(self, agent, yaw, object):
+        theta, dist, _ = self._get_direction_and_distance(agent, object.loc, yaw)
+        return abs(theta) < self.orientation_threshold and dist < 1
 
     @overrides(XWorld3DTask)
     def _time_reward(self):

@@ -17,7 +17,7 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         self.sel_classes = {} # selected classes for a session
         self.shuffle = False # shuffle classes
         # (y, x, z)
-        self.nav_loc_set = [(2, 0, 0), (2, 4, 0)]
+        self.nav_loc_set = [(2, 1, 0), (2, 3, 0)]
         self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
         self.teach_loc = (0, 2, 0)
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
@@ -44,11 +44,11 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_nav_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \
-                                                      "yaw" : None})
+                                                      "yaw" : 2})
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_dia_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \
-                                                      "yaw" : None})
+                                                      "yaw" : 0})
         a, _, _ = self.get_agent()
 
         self.agent_yaw = random.choice(self.agent_yaw_set)
