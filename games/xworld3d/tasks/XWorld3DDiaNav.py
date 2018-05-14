@@ -25,7 +25,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.teach_step_max = 4
         self.teach_step_cur = 0
         self.taught_goal_loc = [] # loc for already taught goals
-        self.orientation_threshold = self.PI_4
+        self.orientation_threshold = self.PI_4 + self.PI_8
 
     def reset_dialog_setting(self):
         self.teacher_sent_prev_ = [] # stores teacher's sentences in a session in order

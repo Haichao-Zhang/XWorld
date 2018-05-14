@@ -41,6 +41,9 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
 
         sel_goals = self.get_selected_goal_classes()
 
+        # sel_goals.pop()
+        # sel_goals += ["carpet"]
+
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_nav_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \

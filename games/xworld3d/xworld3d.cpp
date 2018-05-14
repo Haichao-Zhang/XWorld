@@ -326,9 +326,9 @@ void X3World::remove_item(X3ItemPtr& item) {
     }
 }
 
-roboschool::RenderResult X3World::render(const size_t agent_id, bool debug) {
+roboschool::RenderResult X3World::render(const size_t agent_id, bool bird_view, int view_height) {
     auto agent_ptr = get_agent(agent_id);
-    return camera_->render(agent_ptr.get(), debug);
+    return camera_->render(agent_ptr.get(), bird_view, view_height);
 }
 
 void X3World::step(const int frame_skip) {

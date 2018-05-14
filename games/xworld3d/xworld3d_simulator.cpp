@@ -55,7 +55,8 @@ public:
 
     void get_screen_rgb(const size_t agent_id,
                         cv::Mat& img,
-                        bool bird_view = false);  // get the current screenshot (color)
+                        bool bird_view = false,
+                        int view_height = 10);  // get the current screenshot (color)
 
     std::set<std::string> contact_list(const size_t agent_id);
 
@@ -103,9 +104,10 @@ inline void X3SimulatorImpl::step(const int frame_skip) {
 }
 
 void X3SimulatorImpl::get_screen_rgb(
-        const size_t agent_id, cv::Mat& screen, bool bird_view) {
+                                     const size_t agent_id, cv::Mat& screen, bool bird_view,
+                                     int view_height) {
     roboschool::RenderResult render_result =
-            xworld3d_.render(agent_id, bird_view);
+        xworld3d_.render(agent_id, bird_view, view_height);
     std::string render_str = std::get<0>(render_result);
     int img_height = std::get<4>(render_result);
     int img_width = std::get<5>(render_result);
@@ -144,6 +146,7 @@ X3Simulator::X3Simulator(bool print, bool big_screen) :
         img_height_out_(FLAGS_x3_training_img_height),
         img_width_out_(FLAGS_x3_training_img_width),
         bird_view_(false),
+        view_height_(10),
         agent_received_sentences_(0),
         agent_prev_actions_(0),
         keyboard_action_(-1) {
@@ -204,7 +207,7 @@ std::string X3Simulator::conf_file() {
 
 void X3Simulator::show_screen(float reward) {
     cv::Mat img;
-    impl_->get_screen_rgb(active_agent_id_, img, bird_view_);
+    impl_->get_screen_rgb(active_agent_id_, img, bird_view_, view_height_);
 
     cv::Mat command_img = get_command_image(history_messages_.back());
     cv::Mat reward_img = get_reward_image(reward);
@@ -382,6 +385,19 @@ float X3Simulator::take_action(const StatePacket& actions) {
                 break;
             case 'n':
                 action = X3NavAction::NOOP;
+                break;
+            case 'h':
+                if (bird_view_) {
+                   view_height_ = view_height_ + 2;
+                   LOG(INFO) << "height ++ " << view_height_;
+                }
+                break;
+            case 'l':
+                if (bird_view_) {
+                   view_height_ = view_height_ - 2;
+                   LOG(INFO) << "height -- " << view_height_;
+                }
+                break;
             default:
                 break;
         }

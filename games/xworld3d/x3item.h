@@ -200,7 +200,7 @@ public:
 
     // Return the image seen by agent.
     // If bird_view is true, a bird view image is also returned.
-    roboschool::RenderResult render(X3Item* item, bool bird_view = false);
+    roboschool::RenderResult render(X3Item* item, bool bird_view = false, int view_height = 10);
 
     // Camera can be attached to an agent so that the rendered image is centered
     // at the agent

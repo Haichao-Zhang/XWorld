@@ -137,7 +137,7 @@ public:
 
     bool act(const size_t agent_id, const size_t action);
 
-    roboschool::RenderResult render(const size_t agent_id, bool debug);
+    roboschool::RenderResult render(const size_t agent_id, bool bird_view, int view_height);
 
     void step(const int frame_skip);
 

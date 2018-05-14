@@ -23,7 +23,7 @@ const x3real X3Item::UNIT = FLAGS_x3_unit;
 const x3real X3Item::UNIT_INV = 1.0 / FLAGS_x3_unit;
 
 const x3real REACH_HEIGHT_THRESHOLD = X3Item::UNIT;
-const x3real CAMERA_BIRD_VIEW_HEIGHT = 10.0 * X3Item::UNIT;
+x3real CAMERA_BIRD_VIEW_HEIGHT = 9.0 * X3Item::UNIT;
 
 X3ItemPtr X3Item::create_item(const Entity& e, World& world) {
     if (e.type == "agent") {
@@ -216,8 +216,9 @@ void X3Camera::update(bool bird_view) {
     }
 }
 
-roboschool::RenderResult X3Camera::render(X3Item* item, bool bird_view) {
+roboschool::RenderResult X3Camera::render(X3Item* item, bool bird_view, int view_height) {
     attach_item(item);
+    CAMERA_BIRD_VIEW_HEIGHT = view_height;
     update(bird_view);
     return camera_.render(false, false, false);
 }
