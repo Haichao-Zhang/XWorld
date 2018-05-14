@@ -25,6 +25,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.teach_step_max = 4
         self.teach_step_cur = 0
         self.taught_goal_loc = [] # loc for already taught goals
+        self.nav_loc_set = list(self.env.nav_loc_set) # get a copy at the beginning and resetting
         self.orientation_threshold = self.PI_4 + self.PI_8
 
     def reset_dialog_setting(self):
@@ -32,6 +33,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.behavior_flags = []
         self.teach_step_cur = 0
         self.taught_goal_loc = [] # loc for already taught goals
+        self.nav_loc_set = list(self.env.nav_loc_set) # get a copy at the beginning
 
     def get_nav_goals(self):
         goals = self._get_goals()
@@ -86,7 +88,9 @@ class XWorld3DDiaNav(XWorld3DTask):
                 self.active_loc = self.env.teach_loc
                 self._move_entity(active_goal, self.env.teach_loc)
             else:
-                self._move_entity(active_goal, self.org_loc)
+                random.shuffle(self.nav_loc_set)
+                loc = self.nav_loc_set.pop()
+                self._move_entity(active_goal, loc)
 
             # check if teaching condition is satisfied
             l1 = np.array(active_goal.loc)

@@ -34,8 +34,8 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             self.shuffle_classes("goal")
 
         self.set_entity(type="agent", loc=(2, 2, 0))
-        self.set_entity(type="goal", loc=self.nav_loc_set[0])
-        self.set_entity(type="goal", loc=self.nav_loc_set[1])
+        # self.set_entity(type="goal", loc=self.nav_loc_set[0])
+        # self.set_entity(type="goal", loc=self.nav_loc_set[1])
         self.set_entity(type="goal", loc=self.dia_loc_set[0])
         self.set_entity(type="goal", loc=self.dia_loc_set[1])
 
@@ -44,10 +44,12 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         # sel_goals.pop()
         # sel_goals += ["carpet"]
 
+        """
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_nav_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \
                                                       "yaw" : 2})
+        """
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_dia_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \
