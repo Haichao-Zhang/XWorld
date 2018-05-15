@@ -25,10 +25,12 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
 
         self.num_distractor = min(self.num_distractor, len(self.nav_loc_set) - len(self.dia_loc_set))
 
+        """
         random.shuffle(self.nav_loc_set)
         for i in range(self.num_distractor):
             loc = self.nav_loc_set.pop()
             self.dis_loc_set += [loc]
+        """
 
         self.teach_loc = (0, 2, 0)
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
@@ -40,7 +42,14 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
 
         if select_class:
             # re-select goal class for a new session
-            self.sel_classes = self.select_goal_classes(self.class_per_session)
+            # self.sel_classes = self.select_goal_classes(self.class_per_session)
+            goal_class = self.get_selected_goal_classes(reselect=True)
+            dis_class = self.get_distractor_classes(reselect=True)
+            # randomly partation the location set
+            loc_set = self.nav_loc_set + self.dis_loc_set
+            random.shuffle(loc_set)
+            self.nav_loc_set = loc_set[0:-self.num_distractor]
+            self.dis_loc_set = loc_set[-self.num_distractor:]
 
         if self.shuffle:
             self.shuffle_classes("goal")
@@ -126,22 +135,22 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             sel_classes = valid_goals
         return sel_classes
 
-    def get_selected_goal_classes(self):
+    def get_selected_goal_classes(self, reselect=False):
         """
         Get the selected classes for a session
         """
-        if not self.sel_classes:
+        if not self.sel_classes or reselect:
             self.sel_classes = self.select_goal_classes(self.class_per_session)
         return self.sel_classes
 
-    def get_distractor_classes(self):
+    def get_distractor_classes(self, reselect=False):
         """
         Get the selected classes for a session
         """
         # should select the goal class first
         if not self.sel_classes:
             self.sel_classes = self.select_goal_classes(self.class_per_session)
-        if not self.dis_classes:
+        if not self.dis_classes or reselect:
             self.dis_classes = self.select_goal_classes(self.num_distractor, self.sel_classes)
         return self.dis_classes
 
