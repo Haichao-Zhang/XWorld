@@ -14,11 +14,22 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
             maze_generation=False)
         self.class_per_session = 2 # max number of classes in a session
                                    # value < 1 denotes all classes are used
-        self.sel_classes = {} # selected classes for a session
+        self.sel_classes = [] # selected classes for a session
+        self.dis_classes = [] # selected distractor classes for a session
         self.shuffle = False # shuffle classes
+        self.num_distractor = 1 # number of distractors
         # (y, x, z)
-        self.nav_loc_set = [(2, 1, 0), (2, 3, 0)]
+        self.nav_loc_set = [(2, 0, 0), (2, 4, 0), (4, 2, 0)]
         self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
+        self.dis_loc_set = [] # distraction location
+
+        self.num_distractor = min(self.num_distractor, len(self.nav_loc_set) - len(self.dia_loc_set))
+
+        random.shuffle(self.nav_loc_set)
+        for i in range(self.num_distractor):
+            loc = self.nav_loc_set.pop()
+            self.dis_loc_set += [loc]
+
         self.teach_loc = (0, 2, 0)
         self.agent_yaw_set = [3.14] # [0, 3.14] # yaw set for agent
 
@@ -28,7 +39,8 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         self.set_dims(5, 5)
 
         if select_class:
-            self.select_goal_classes() # re-select goal class for a new session
+            # re-select goal class for a new session
+            self.sel_classes = self.select_goal_classes(self.class_per_session)
 
         if self.shuffle:
             self.shuffle_classes("goal")
@@ -38,8 +50,11 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         # self.set_entity(type="goal", loc=self.nav_loc_set[1])
         self.set_entity(type="goal", loc=self.dia_loc_set[0])
         self.set_entity(type="goal", loc=self.dia_loc_set[1])
+        for i in range(self.num_distractor):
+            self.set_entity(type="goal", loc=self.dis_loc_set[i])
 
         sel_goals = self.get_selected_goal_classes()
+        dis_goals = self.get_distractor_classes()
 
         # sel_goals.pop()
         # sel_goals += ["carpet"]
@@ -53,6 +68,10 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         random.shuffle(sel_goals)
         for i, e in enumerate(self.get_dia_goals()):
             self.set_property(e, property_value_dict={"name" : sel_goals[i], \
+                                                      "yaw" : 0})
+        random.shuffle(dis_goals)
+        for i, e in enumerate(self.get_dis_goals()):
+            self.set_property(e, property_value_dict={"name" : dis_goals[i], \
                                                       "yaw" : 0})
         a, _, _ = self.get_agent()
 
@@ -69,6 +88,11 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         dia_goals = [g for g in goals if g.loc in self.dia_loc_set]
         return dia_goals
 
+    def get_dis_goals(self):
+        goals = self.get_goals()
+        dis_goals = [g for g in goals if g.loc in self.dis_loc_set]
+        return dis_goals
+
     @overrides(XWorld3DEnv)
     def get_all_possible_names(self, type):
         """
@@ -78,7 +102,7 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         'agent' - all agent names
         """
         if type == "goal":
-            return self.get_selected_goal_classes()
+            return self.get_selected_goal_classes() + self.get_distractor_classes()
         else:
             return self.items[type].keys()
 
@@ -88,22 +112,38 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         random.shuffle(V)
         self.items[type].update(dict(zip(K, V)))
 
-    def select_goal_classes(self):
+    def select_goal_classes(self, goal_num=-1, goal_exclusive_set=[]):
         """
         Sample a number of classes (class_per_session) for interaction within a session
+        goal_num: number of goals to be selected; get all goals if <=0
+        goal_exclusive_set: a set of goals to be excluded from before goal selection
         """
-        if self.class_per_session > 1:
-            self.sel_classes = random.sample(self.items["goal"].keys(), self.class_per_session)
+        all_goals = self.items["goal"].keys()
+        valid_goals = list(set(all_goals) - set(goal_exclusive_set))
+        if goal_num >= 1:
+            sel_classes = random.sample(valid_goals, goal_num)
         else:
-            self.sel_classes = self.items["goal"].keys()
+            sel_classes = valid_goals
+        return sel_classes
 
     def get_selected_goal_classes(self):
         """
         Get the selected classes for a session
         """
         if not self.sel_classes:
-            self.select_goal_classes()
+            self.sel_classes = self.select_goal_classes(self.class_per_session)
         return self.sel_classes
+
+    def get_distractor_classes(self):
+        """
+        Get the selected classes for a session
+        """
+        # should select the goal class first
+        if not self.sel_classes:
+            self.sel_classes = self.select_goal_classes(self.class_per_session)
+        if not self.dis_classes:
+            self.dis_classes = self.select_goal_classes(self.num_distractor, self.sel_classes)
+        return self.dis_classes
 
     """
     def within_session_reinstantiation(self, e_list, step_list):
