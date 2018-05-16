@@ -100,7 +100,8 @@ class XWorld3DDiaNav(XWorld3DTask):
             north_dir = np.array(tsum(*self.env.dia_loc_set)) / 2
 
             theta = np.arccos(np.dot(diff, north_dir) / (np.linalg.norm(diff) * np.linalg.norm(north_dir)))
-            if np.abs(theta - 1.57) <= 0.5: # move and teach when obj in view
+            if np.abs(theta - 1.57) <= 0.3 and l1[0] < l2[0]: # move and teach when obj in view
+                # l1[1] < l2[1] denotes the obj is in the front of agent
                 ## first generate all candidate answers
                 self._bind("S -> statement")
                 self._set_production_rule("G -> " + " ".join(["'" + active_goal.name + "'"]))
