@@ -17,6 +17,7 @@ This repository contains a collection of simulators for Reinforcement Learning r
 (*If yes, then multithreading can be used; otherwise multiprocessing is needed.)
 
 # Architecture
+-------------------
 XWorld features a *teacher* infrastructure implemented as a scheduler of multiple Finite State Machines (FSMs). The idea is that given the environment, the teacher can propose a task sampled (by some heuristics) from a task set. Each task - formulated as an FSM - has several stages, and the teacher does different things in different stages. The transition from one stage to another is determined by the envionment state, e.g., whehter the agent is idle or whether it has achieved the goal. Each stage returns several things including the next stage and the teacher's action. Currently, we define language (strings) as the teacher's sole action. However, the teacher is able to change the environment (e.g., adding/deleting objects, changing the map size, etc.) within each stage.
 
 <img src="doc/xworld_arch.png">
