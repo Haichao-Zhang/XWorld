@@ -394,7 +394,7 @@ class XWorld3DEnv(object):
                     yaw_range = [-self.PI, self.PI]
                     entity.yaw = check_or_get_value(value, yaw_range, is_continuous=True)
                 elif entity.type == "goal":
-                    yaw_range = range(-1, 3)
+                    yaw_range = range(-1, 3) # * self.PI / 2
                     entity.yaw = check_or_get_value(value, yaw_range)
         self.changed = True
 

@@ -19,7 +19,9 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         self.shuffle = False # shuffle classes
         self.num_distractor = 1 # number of distractors
         # (y, x, z)
+        # self.nav_loc_set = [(1, 0, 0), (1, 3, 0), (2, 4, 0)]
         self.nav_loc_set = [(2, 0, 0), (2, 4, 0), (4, 2, 0)]
+        #self.nav_loc_set = [(2, 1, 0), (2, 3, 0), (3, 2, 0)]
         self.dia_loc_set = [(0, 0, 0), (0, 4, 0)]
         self.dis_loc_set = [] # distraction location
 
@@ -54,6 +56,7 @@ class XWorld3DDiaNavMap(XWorld3DEnv):
         if self.shuffle:
             self.shuffle_classes("goal")
 
+        # self.set_entity(type="agent", loc=(1, 2, 0))
         self.set_entity(type="agent", loc=(2, 2, 0))
         # self.set_entity(type="goal", loc=self.nav_loc_set[0])
         # self.set_entity(type="goal", loc=self.nav_loc_set[1])

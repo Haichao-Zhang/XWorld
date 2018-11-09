@@ -175,7 +175,7 @@ class XWorldDialog(XWorldTask):
         return ["idle", "reward", "conversation_wrapup"]
 
     def _define_grammar(self):
-        if False:
+        if True:
             return self.get_sentence_level_grammar()
         else:
             return self.get_word_level_grammar()
