@@ -7,7 +7,7 @@ import numpy as np
 class XWorld3DDiaNav(XWorld3DTask):
     def __init__(self, env):
         super(XWorld3DDiaNav, self).__init__(env)
-        self.max_steps = 50 # maximum number of steps, should be related to number of sel classes
+        self.max_steps = 20 # maximum number of steps, should be related to number of sel classes
         self.speak_correct_reward = 1
         self.speak_incorrect_reward = -1
         self.question_ask_reward = 0.1
@@ -18,7 +18,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         self.stepwise_reward = True
         self.success_reward = 1
         self.failure_reward = -1
-        self.step_penalty = -0.05
+        self.step_penalty = -0.01
 
         ## for teaching moving objects
         self.active_loc = None
@@ -110,7 +110,7 @@ class XWorld3DDiaNav(XWorld3DTask):
                 sent = self.sentence_selection_with_ratio()
                 self._set_production_rule("R -> " + " ".join(["'" + sent + "'"]))
                 teacher_sent = self._generate_and_save([sent])
-            return ["move_or_teach", 0.0, teacher_sent]
+            return ["move_or_teach", 0., teacher_sent]
         else: # issue an navigation command in the end
             sel_goal = random.choice(self.get_nav_goals())
             ## first generate all candidate answers
@@ -124,7 +124,7 @@ class XWorld3DDiaNav(XWorld3DTask):
             ## find all goals that have the same name as the just taught one but at a different location
             targets = [g for g in self.get_nav_goals() if g.name == sel_goal.name]
             self._record_target(targets)
-            return ["command_and_reward", 0.0, teacher_sent]
+            return ["command_and_reward", 0., teacher_sent]
 
     def command_and_reward(self):
         """
@@ -137,7 +137,7 @@ class XWorld3DDiaNav(XWorld3DTask):
         teacher_sent_prev = self._get_last_sent()
 
         reward, time_out = self._time_reward()
-        reward = self.step_penalty # over-write the step penalty
+        #reward = self.step_penalty # over-write the step penalty
         if not time_out:
             agent, _, _ = self._get_agent()
             objects_reach_test = [g.id for g in self._get_goals() \
@@ -145,12 +145,12 @@ class XWorld3DDiaNav(XWorld3DTask):
             if [t for t in self.target if t.id in objects_reach_test]:
                 # add with time penalty within _successful_goal function
                 reward = self._successful_goal(reward)
-                reward = np.clip(reward, self.failure_reward, self.success_reward)
+                #reward = np.clip(reward, self.failure_reward, self.success_reward)
                 self.behavior_flags += [True]
                 return ["conversation_wrapup", reward, self.sentence]
             elif objects_reach_test:
                 reward = self._failed_goal(reward)
-                reward = np.clip(reward, self.failure_reward, self.success_reward)
+                #reward = np.clip(reward, self.failure_reward, self.success_reward)
                 self.behavior_flags += [False]
                 return ["conversation_wrapup", reward, self.sentence]
             return ["command_and_reward", reward, self.sentence]
@@ -260,7 +260,7 @@ class XWorld3DDiaNav(XWorld3DTask):
     def get_word_level_grammar(self):
         grammar_str = """
         S --> statement | command | correct | wrong | timeup
-        statement-> G
+        statement-> 'this' 'is' G
         command -> C
         G -> 'dummy'
         C -> 'go' 'to' G

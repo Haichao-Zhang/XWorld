@@ -140,8 +140,10 @@ std::set<std::string> X3SimulatorImpl::contact_list(const size_t agent_id) {
 }
 
 X3Simulator::X3Simulator(bool print, bool big_screen) :
-        legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT,
-                    TURN_LEFT, TURN_RIGHT, NOOP}),
+        // legal_actions_({MOVE_FORWARD, MOVE_BACKWARD, MOVE_LEFT, MOVE_RIGHT,
+        //            TURN_LEFT, TURN_RIGHT, NOOP}),
+        legal_actions_({MOVE_FORWARD,
+                        TURN_LEFT, TURN_RIGHT, NOOP}),
         height_(0), width_(0),
         img_height_out_(FLAGS_x3_training_img_height),
         img_width_out_(FLAGS_x3_training_img_width),
